@@ -1,0 +1,18 @@
+.idea/
+.vs/
+*.user
+
+bin/
+obj/
+
+.DS_Store
+*.DS_Store
+
+Darksiders II Reborn.app/
+Darksiders II Reborn Windows/
+Darksiders II Reborn Linux/
+ReleaseBuild/
+temp_*/
+*.zip
+
+appsettings.*

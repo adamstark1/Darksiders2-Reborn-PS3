@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="DNS" Version="*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Darksiders2Reborn.Launcher\**" />
+    <EmbeddedResource Remove="Darksiders2Reborn.Launcher\**" />
+    <None Remove="Darksiders2Reborn.Launcher\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="darksiders2.pfx">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  
+</Project>
