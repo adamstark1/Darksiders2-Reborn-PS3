@@ -1,32 +1,58 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Net;
+using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
-using System.Threading;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Platform.Storage;
-using Darksiders2Reborn.Launcher.Services;
+using System.Collections.Generic;
 
 namespace Darksiders2Reborn.Launcher.ViewModels;
 
 public partial class MainWindowViewModel : ObservableObject
 {
+    private const string GitHubClientId = "Ov23liuE2dntdLRDsJNi";
+
     [ObservableProperty] private string _currentStepText = "";
     [ObservableProperty] private bool _isOptional = false;
     [ObservableProperty] private string _stepDescription = "";
     [ObservableProperty] private string _primaryButtonText = "";
+    [ObservableProperty] private string _secondaryButtonText = "";
     [ObservableProperty] private string _terminalOutput = "Darksiders II Reborn Setup initialized...\n";
     [ObservableProperty] private bool _isReadmeLinkVisible = true;
+    
+    [ObservableProperty] private bool _isPrimaryButtonVisible = true;
+    [ObservableProperty] private bool _isSkipButtonVisible = true;
+    [ObservableProperty] private bool _isPlatformButtonsVisible = false;
+    [ObservableProperty] private bool _isPrimaryEnabled = true;
+
+    [ObservableProperty] private bool _isWaiting;
+    [ObservableProperty] private double _waitProgress;
+    [ObservableProperty] private string _waitRemainingText = "";
+
+    [ObservableProperty] private bool _isGithubPopupVisible;
+    [ObservableProperty] private string _githubUserCode = "";
+    [ObservableProperty] private string _githubVerificationUri = "";
+    [ObservableProperty] private string _githubAuthMessage = "Waiting for authorization...";
+
+    private bool _isOfwSelected = true;
+    private bool _isRpcs3Selected = false;
 
     private int _step;
     private Process? _serverProcess;
+    private CancellationTokenSource? _githubPollingCts;
+    private CancellationTokenSource? _waitCts;
+    private string? _cachedAccessToken;
+    private string? _cachedDeviceCode;
+    private int _cachedInterval;
+    private DateTime _codeExpiration;
 
     public MainWindowViewModel()
     {
@@ -70,11 +96,8 @@ public partial class MainWindowViewModel : ObservableObject
                     await KillPortsAsync();
                     SetStep(2);
                     break;
-                case 2:
-                    if (await PatchEbootAsync()) SetStep(3);
-                    break;
                 case 3:
-                    StartServer();
+                    await ProcessUnlockAsync();
                     break;
                 case 4:
                     StopServer();
@@ -85,15 +108,69 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void SelectOfw()
+    {
+        _isOfwSelected = true;
+        _isRpcs3Selected = false;
+        SetStep(3);
+    }
+
+    [RelayCommand]
+    private void SelectRpcs3()
+    {
+        _isOfwSelected = false;
+        _isRpcs3Selected = true;
+        SetStep(3);
+    }
+
+    [RelayCommand]
     private void SkipStep()
     {
-        SetStep(_step + 1);
+        if (IsWaiting)
+        {
+            Log("[INFO] Server startup cancelled.");
+            _waitCts?.Cancel();
+            IsWaiting = false;
+            SetStep(3);
+        }
+        else
+        {
+            if (_step == 1) SetStep(2);
+            else if (_step == 3) SetStep(2);
+        }
     }
 
     [RelayCommand]
     private void OpenReadme()
     {
         Process.Start(new ProcessStartInfo { FileName = "https://github.com/adamstark1/Darksiders2-Reborn-PS3", UseShellExecute = true });
+    }
+
+    [RelayCommand]
+    private async Task CopyGithubCodeAsync()
+    {
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop && desktop.MainWindow?.Clipboard != null)
+        {
+            await desktop.MainWindow.Clipboard.SetTextAsync(GithubUserCode);
+            GithubAuthMessage = "Code copied to clipboard!";
+        }
+    }
+
+    [RelayCommand]
+    private void OpenGithubAuth()
+    {
+        if (!string.IsNullOrEmpty(GithubVerificationUri))
+        {
+            Process.Start(new ProcessStartInfo { FileName = GithubVerificationUri, UseShellExecute = true });
+        }
+    }
+
+    [RelayCommand]
+    private void SkipGithubAuth()
+    {
+        _githubPollingCts?.Cancel();
+        IsGithubPopupVisible = false;
+        Log("GitHub authorization skipped.");
     }
 
     private void SetStep(int step)
@@ -104,72 +181,218 @@ public partial class MainWindowViewModel : ObservableObject
             case 1:
                 CurrentStepText = "Step 1/3: Port Clearance";
                 IsOptional = true;
-                StepDescription = "Free up Port 53 (DNS), Port 80 (HTTP) and Port 443 (HTTPS).";
+                IsPrimaryButtonVisible = true;
+                IsSkipButtonVisible = true;
+                IsPlatformButtonsVisible = false;
+                IsReadmeLinkVisible = true;
+                IsPrimaryEnabled = true;
+                SecondaryButtonText = "Skip";
+                StepDescription = "Free up Port 53 (DNS), Port 443 and Port 8443 (HTTPS).";
                 PrimaryButtonText = "Kill Conflicting Ports";
                 break;
             case 2:
-                CurrentStepText = "Step 2/3: Patch EBOOT";
-                IsOptional = true;
-                StepDescription = "Select your decrypted EBOOT.elf (RPCS3: Utilities > Decrypt PS3 Binaries).";
-                PrimaryButtonText = "Select & Patch EBOOT";
+                CurrentStepText = "Step 2/3: Select Platform";
+                IsOptional = false;
+                IsPrimaryButtonVisible = false;
+                IsSkipButtonVisible = false;
+                IsPlatformButtonsVisible = true;
+                IsReadmeLinkVisible = true;
+                StepDescription = "Choose your platform to start the backend server.";
                 break;
             case 3:
-                CurrentStepText = "Step 3/3: Console DNS";
+                CurrentStepText = "Step 3/3: Start Server";
                 IsOptional = false;
+                IsPrimaryButtonVisible = true;
+                IsSkipButtonVisible = true;
+                IsPlatformButtonsVisible = false;
                 IsReadmeLinkVisible = true;
-                StepDescription = $"Go to your PS3 Network Settings and set Primary DNS to:\n\n{GetLocalIpAddress()}";
+                IsPrimaryEnabled = true;
+                SecondaryButtonText = "Back";
+                if (_isOfwSelected)
+                {
+                    StepDescription = $"Go to your PS3 Network Settings and set Primary DNS to:\n\n{GetLocalIpAddress()}";
+                }
+                else
+                {
+                    StepDescription = "Run patch_eboot.sh on your EBOOT.elf, place it in your RPCS3 game folder, and start the emulator.";
+                }
                 PrimaryButtonText = "Start Server";
                 break;
             case 4:
                 CurrentStepText = "Server is Running";
                 IsOptional = false;
+                IsPrimaryButtonVisible = true;
+                IsSkipButtonVisible = false;
+                IsPlatformButtonsVisible = false;
                 IsReadmeLinkVisible = false;
-                StepDescription = "Server is active. Monitoring PS3 requests in the terminal below.";
+                IsPrimaryEnabled = true;
+                StepDescription = $"Server is active for {(_isOfwSelected ? "PS3 Console" : "RPCS3")}. Monitoring requests in the terminal below.\n\nPS3 Primary DNS: {GetLocalIpAddress()}";
                 PrimaryButtonText = "Stop Server";
                 break;
         }
     }
 
-    private async Task<bool> PatchEbootAsync()
+    private async Task ProcessUnlockAsync()
     {
-        if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop || desktop.MainWindow is null)
+        IsPrimaryEnabled = false;
+        Log("Initiating GitHub Device Flow authorization...");
+        bool isStarred = await AuthenticateAndCheckStarAsync();
+
+        if (isStarred)
         {
-            return false;
+            Log("[SUCCESS] Star ⭐ verified! Starting server immediately...");
+            StartServerProcess();
         }
-
-        var files = await desktop.MainWindow.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        else
         {
-            Title = "Select the decrypted Darksiders II EBOOT (ELF)",
-            AllowMultiple = false,
-            FileTypeFilter = new[]
-            {
-                new FilePickerFileType("PS3 EBOOT") { Patterns = new[] { "*.elf", "*.ELF", "*.bin", "*.BIN" } },
-                FilePickerFileTypes.All
-            }
-        });
-
-        if (files.Count == 0)
-        {
-            Log("No file selected.");
-            return false;
+            Log("[WARNING] Star missing or bypassed. Starting timer...");
+            await ApplyDelayAndProceedAsync();
         }
-
-        string? path = files[0].TryGetLocalPath();
-        if (path is null)
-        {
-            Log("The selected file is not a local file.");
-            return false;
-        }
-
-        Log($"Patching {Path.GetFileName(path)}...");
-        var result = await Task.Run(() => EbootPatcherService.Patch(path));
-        Log(result.Message);
-        if (result.OutputPath is not null) Log($"Patched file: {result.OutputPath}");
-
-        return result.Status == EbootPatchStatus.Patched || result.Status == EbootPatchStatus.AlreadyPatched;
     }
 
-    private void StartServer()
+    private async Task ApplyDelayAndProceedAsync()
+    {
+        IsWaiting = true;
+        SecondaryButtonText = "Cancel";
+        _waitCts = new CancellationTokenSource();
+
+        // Matematikai elrejtés: 150 << 2 = 600 másodperc = 10 perc
+        TimeSpan totalWait = TimeSpan.FromSeconds(150 << 2);
+        DateTime startTime = DateTime.UtcNow;
+        DateTime endTime = startTime.Add(totalWait);
+
+        try
+        {
+            while (DateTime.UtcNow < endTime)
+            {
+                _waitCts.Token.ThrowIfCancellationRequested();
+
+                TimeSpan remaining = endTime - DateTime.UtcNow;
+                WaitRemainingText = $"Time remaining: {(int)remaining.TotalMinutes:D2}:{remaining.Seconds:D2}";
+                WaitProgress = 100.0 - (remaining.TotalSeconds / totalWait.TotalSeconds * 100.0);
+
+                await Task.Delay(1000, _waitCts.Token);
+            }
+
+            IsWaiting = false;
+            StartServerProcess();
+        }
+        catch (OperationCanceledException)
+        {
+            IsPrimaryEnabled = true;
+        }
+    }
+
+    private async Task<bool> AuthenticateAndCheckStarAsync()
+    {
+        try
+        {
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+
+            if (!string.IsNullOrEmpty(_cachedAccessToken))
+            {
+                using var authClient = new HttpClient();
+                authClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_cachedAccessToken}");
+                authClient.DefaultRequestHeaders.Add("User-Agent", "Darksiders2Reborn-App");
+
+                var starResp = await authClient.GetAsync("https://api.github.com/user/starred/adamstark1/Darksiders2-Reborn-PS3");
+                
+                if (starResp.StatusCode == System.Net.HttpStatusCode.NoContent)
+                {
+                    return true;
+                }
+                if (starResp.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    _cachedAccessToken = null;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            if (string.IsNullOrEmpty(_cachedDeviceCode) || DateTime.UtcNow > _codeExpiration)
+            {
+                var requestData = new FormUrlEncodedContent(new[] { new KeyValuePair<string, string>("client_id", GitHubClientId) });
+                var response = await client.PostAsync("https://github.com/login/device/code", requestData);
+                if (!response.IsSuccessStatusCode) return false;
+
+                var json = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(json);
+
+                _cachedDeviceCode = doc.RootElement.GetProperty("device_code").GetString()!;
+                GithubUserCode = doc.RootElement.GetProperty("user_code").GetString()!;
+                GithubVerificationUri = doc.RootElement.GetProperty("verification_uri").GetString()!;
+                _cachedInterval = doc.RootElement.GetProperty("interval").GetInt32();
+                
+                int expiresIn = doc.RootElement.GetProperty("expires_in").GetInt32();
+                _codeExpiration = DateTime.UtcNow.AddSeconds(expiresIn - 60);
+            }
+
+            GithubAuthMessage = "Enter code in the opened browser window...";
+            IsGithubPopupVisible = true;
+
+            _githubPollingCts = new CancellationTokenSource();
+            string? accessToken = null;
+
+            while (!_githubPollingCts.IsCancellationRequested && DateTime.UtcNow < _codeExpiration)
+            {
+                await Task.Delay(_cachedInterval * 1000, _githubPollingCts.Token);
+
+                var pollData = new FormUrlEncodedContent(new[]
+                {
+                    new KeyValuePair<string, string>("client_id", GitHubClientId),
+                    new KeyValuePair<string, string>("device_code", _cachedDeviceCode),
+                    new KeyValuePair<string, string>("grant_type", "urn:ietf:params:oauth:grant-type:device_code")
+                });
+
+                var pollResp = await client.PostAsync("https://github.com/login/oauth/access_token", pollData);
+                var pollJson = await pollResp.Content.ReadAsStringAsync();
+
+                if (pollJson.Contains("access_token"))
+                {
+                    using var pollDoc = JsonDocument.Parse(pollJson);
+                    accessToken = pollDoc.RootElement.GetProperty("access_token").GetString();
+                    break;
+                }
+                if (pollJson.Contains("authorization_pending")) continue;
+                if (pollJson.Contains("slow_down"))
+                {
+                    _cachedInterval += 5;
+                    continue;
+                }
+                
+                _cachedDeviceCode = null;
+                break;
+            }
+
+            IsGithubPopupVisible = false;
+
+            if (string.IsNullOrEmpty(accessToken)) return false;
+
+            _cachedAccessToken = accessToken;
+
+            using var authClient2 = new HttpClient();
+            authClient2.DefaultRequestHeaders.Add("Authorization", $"Bearer {_cachedAccessToken}");
+            authClient2.DefaultRequestHeaders.Add("User-Agent", "Darksiders2Reborn-App");
+
+            var starResp2 = await authClient2.GetAsync("https://api.github.com/user/starred/adamstark1/Darksiders2-Reborn-PS3");
+            return starResp2.StatusCode == System.Net.HttpStatusCode.NoContent;
+        }
+        catch (TaskCanceledException)
+        {
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Log($"[AUTH ERROR] {ex.Message}");
+            IsGithubPopupVisible = false;
+            return false;
+        }
+    }
+
+    private void StartServerProcess()
     {
         Log("Starting backend server...");
         string baseDir = AppContext.BaseDirectory;
@@ -203,8 +426,11 @@ public partial class MainWindowViewModel : ObservableObject
         if (!File.Exists(backendPath))
         {
             Log("Backend executable not found. Build the backend project first.");
+            IsPrimaryEnabled = true;
             return;
         }
+
+        string arguments = _isRpcs3Selected ? "--rpcs3" : "";
 
         var psi = new ProcessStartInfo
         {
@@ -218,11 +444,12 @@ public partial class MainWindowViewModel : ObservableObject
         if (backendPath.EndsWith(".dll"))
         {
             psi.FileName = "dotnet";
-            psi.Arguments = $"\"{backendPath}\"";
+            psi.Arguments = $"\"{backendPath}\" {arguments}".Trim();
         }
         else
         {
             psi.FileName = backendPath;
+            psi.Arguments = arguments;
         }
 
         try
@@ -259,7 +486,11 @@ public partial class MainWindowViewModel : ObservableObject
             _serverProcess.BeginErrorReadLine();
             SetStep(4);
         }
-        catch (Exception ex) { Log($"Failed to launch server: {ex.Message}"); }
+        catch (Exception ex) 
+        { 
+            Log($"Failed to launch server: {ex.Message}");
+            IsPrimaryEnabled = true;
+        }
     }
 
     private void StopServer()
@@ -277,15 +508,15 @@ public partial class MainWindowViewModel : ObservableObject
 
     private async Task KillPortsAsync()
     {
-        Log("Clearing Port 53, Port 80 and Port 443...");
+        Log("Clearing Port 53, Port 443 and Port 8443...");
         if (OperatingSystem.IsMacOS())
         {
             await Process.Start(new ProcessStartInfo { FileName = "killall", Arguments = "-HUP mDNSResponder", RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true })!.WaitForExitAsync();
-            await Process.Start(new ProcessStartInfo { FileName = "killall", Arguments = "httpd", RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true })!.WaitForExitAsync();
         }
         else if (OperatingSystem.IsWindows())
         {
             await Process.Start(new ProcessStartInfo { FileName = "net", Arguments = "stop sharedaccess", RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true })!.WaitForExitAsync();
+            await Process.Start(new ProcessStartInfo { FileName = "net", Arguments = "stop http /y", RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true })!.WaitForExitAsync();
         }
         Log("Ports cleared.");
     }
