@@ -19,9 +19,9 @@ public class DNSProxyService : BackgroundService
     {
         string localIp = GetLocalIPAddress();
         IPAddress localIpAddress = IPAddress.Parse(localIp);
-        
+
         var masterFile = new MasterFile();
-        
+
         string[] domains = {
             "ds2.gds.thqconnect.com",
             "ds2.gds.thqconnect.com.",
@@ -33,8 +33,28 @@ public class DNSProxyService : BackgroundService
         {
             masterFile.AddIPAddressResourceRecord(new Domain(domain), localIpAddress);
         }
-        
+
         _server = new DnsServer(masterFile, "8.8.8.8");
+
+        _server.Requested += (sender, e) =>
+        {
+            foreach (var question in e.Request.Questions)
+            {
+                string domainName = question.Name.ToString();
+
+                if (!domainName.Contains("playstation.net") && 
+                    !domainName.Contains("playstation.com") && 
+                    !domainName.Contains("adobeaemcloud.com"))
+                {
+                    Console.WriteLine($"[DNS] {question.Type} {domainName}");
+                }
+            }
+        };
+
+        _server.Errored += (sender, e) =>
+        {
+            Console.WriteLine($"[DNS] Error: {e.Exception.Message}");
+        };
 
         _logger.LogInformation("==================================================");
         _logger.LogInformation($"Darksiders 2 Reborn DNS Proxy is running.");
@@ -49,7 +69,7 @@ public class DNSProxyService : BackgroundService
         {
             _logger.LogError($"[Error] Couldn't open Port 53. Run with sudo. ({ex.Message})");
         }
-        
+
         await Task.Delay(Timeout.Infinite, stoppingToken);
     }
 
