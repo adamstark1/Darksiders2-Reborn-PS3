@@ -42,7 +42,7 @@ cat > "$OUT_DIR/install.sh" << EOF
 DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 echo "Configuring network ports for Darksiders II Reborn..."
-echo "Please enter your password to allow the server to use ports 53 and 443:"
+echo "Please enter your password to allow the server to use ports 443 and 8443:"
 sudo setcap 'cap_net_bind_service=+ep' "\$DIR/Darksiders2Reborn"
 sudo setcap 'cap_net_bind_service=+ep' "\$DIR/Darksiders II Reborn Launcher"
 
