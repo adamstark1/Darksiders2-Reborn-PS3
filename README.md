@@ -65,7 +65,7 @@ You can download the compiled versions for your operating system here:
 ## Sponsors and Contributors
 I'd like to give a huge thank you to everyone who helped with this repository. This projects improves overtime thanks to you! Special credit to [frrstgvmp's](https://github.com/frrstgvmp/darksiders2-ps3-mail-server) repository, whose documentation of the THQ Connect cloud API protocol filled in what I wasn't able to find with [Ghidra](https://github.com/NationalSecurityAgency/ghidra/releases) on my own.
 
-❤️ **Sponsors:** - 
+❤️ **Sponsors:** -  
 🛠️ **Troubleshooting:** -
 
 You can support my coding journey and revival projects on [GitHub Sponsors](https://github.com/sponsors/adamstark1).
@@ -94,6 +94,13 @@ Adjust permissions for these files manually:
 ![Avalonia UI](https://img.shields.io/badge/Avalonia_UI-844FBA?style=for-the-badge)
 ![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)
 ![Windows](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)
+![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
+![Ghidra](https://img.shields.io/badge/Ghidra-E93C30?style=for-the-badge)
+![Bash](https://img.shields.io/badge/Bash-4EAA25?style=for-the-badge&logo=gnu-bash&logoColor=white)
 
-* **Backend:** ASP.NET Core (Kestrel web server)
-* **DNS Routing:** Custom DNS proxy handling UDP port 53 traffic to reroute PSN URLs to the local host.
+- **Backend:** ASP.NET Core (Kestrel web server) handling HTTPS traffic strictly on Port 443 and Port 8443.
+- **Frontend:** Avalonia UI driving the cross-platform setup launcher.
+- **DNS Routing:** Custom DNS proxy handling UDP Port 53 traffic to filter and reroute specific PSN URLs to the local host.
+- **Reverse Engineering:** Ghidra utilized for analyzing the PS3 EBOOT binary to map out undocumented API endpoints.
+- **Authentication:** GitHub Device Flow API integrated for repository star verification to bypass wait timers.
+- **Binary Patching:** Bash scripts (`patch_eboot.sh`) used for in-place ELF certificate replacement and automated multi-platform builds.
