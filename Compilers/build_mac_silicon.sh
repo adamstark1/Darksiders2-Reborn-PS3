@@ -2,7 +2,7 @@
 
 cd "$(dirname "$0")/.."
 
-VERSION="1.0.3"
+VERSION="1.0.0"
 
 echo "Compiling macOS Silicon (osx-arm64) build for version $VERSION..."
 
@@ -18,6 +18,7 @@ mkdir -p "Darksiders II Reborn.app/Contents/Resources"
 cp -R ./temp_launcher/* "Darksiders II Reborn.app/Contents/MacOS/"
 cp -R ./temp_backend/* "Darksiders II Reborn.app/Contents/Backend/"
 cp darksiders2.pfx "Darksiders II Reborn.app/Contents/Backend/"
+cp darksiders2_rpcs3.pfx "Darksiders II Reborn.app/Contents/Backend/"
 cp Assets/AppIcon.icns "Darksiders II Reborn.app/Contents/Resources/"
 
 chmod +x "Darksiders II Reborn.app/Contents/MacOS/Darksiders2Reborn.Launcher"

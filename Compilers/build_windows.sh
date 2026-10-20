@@ -2,7 +2,7 @@
 
 cd "$(dirname "$0")/.."
 
-VERSION="1.0.3"
+VERSION="1.0.0"
 OUT_DIR="Darksiders II Reborn Windows"
 ICON_PATH="Assets/icon.ico"
 
@@ -24,6 +24,7 @@ mv "$OUT_DIR/av_libglesv2.dll" "$OUT_DIR/temp_keep/" 2>/dev/null
 mv "$OUT_DIR/libHarfBuzzSharp.dll" "$OUT_DIR/temp_keep/" 2>/dev/null
 mv "$OUT_DIR/libSkiaSharp.dll" "$OUT_DIR/temp_keep/" 2>/dev/null
 cp darksiders2.pfx "$OUT_DIR/temp_keep/"
+cp darksiders2_rpcs3.pfx "$OUT_DIR/temp_keep/"
 
 find "$OUT_DIR" -mindepth 1 -maxdepth 1 -not -name "temp_keep" -exec rm -rf {} +
 

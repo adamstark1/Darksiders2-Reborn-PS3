@@ -2,7 +2,7 @@
 
 cd "$(dirname "$0")/.."
 
-VERSION="1.0.3"
+VERSION="1.0.0"
 OUT_DIR="Darksiders II Reborn Linux"
 
 echo "Compiling Linux build for version $VERSION..."
@@ -23,6 +23,7 @@ rm -rf temp_backend temp_launcher
 mv "$OUT_DIR/Darksiders2Reborn.Launcher" "$OUT_DIR/Darksiders II Reborn Launcher"
 
 cp darksiders2.pfx "$OUT_DIR/"
+cp darksiders2_rpcs3.pfx "$OUT_DIR/"
 
 chmod +x "$OUT_DIR/Darksiders2Reborn"
 chmod +x "$OUT_DIR/Darksiders II Reborn Launcher"
@@ -41,7 +42,7 @@ cat > "$OUT_DIR/install.sh" << EOF
 DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 echo "Configuring network ports for Darksiders II Reborn..."
-echo "Please enter your password to allow the server to use ports 53 and 80:"
+echo "Please enter your password to allow the server to use ports 53 and 443:"
 sudo setcap 'cap_net_bind_service=+ep' "\$DIR/Darksiders2Reborn"
 sudo setcap 'cap_net_bind_service=+ep' "\$DIR/Darksiders II Reborn Launcher"
 
