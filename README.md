@@ -22,7 +22,7 @@ You can download the compiled versions for your operating system here:
 | <img src="Assets/darksiders2-reborn-ui.png" width="500"> |
 
 ## All Reborn Projects
-II managed to restore the Platinum trophies for these games with the help of some amazing people. Feel free to check them all out! :)
+I managed to restore the Platinum trophies for these games with the help of some amazing people. Feel free to check them all out! :)
 - [inFAMOUS 2](https://github.com/adamstark1/inFAMOUS-Reborn-PS3)
 - [inFAMOUS: Festival of Blood](https://github.com/adamstark1/inFAMOUS-Reborn-PS3)
 - [Darksiders 2](https://github.com/adamstark1/Darksiders2-Reborn-PS3)
