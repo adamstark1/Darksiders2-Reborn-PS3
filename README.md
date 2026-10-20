@@ -12,7 +12,7 @@ These screenshots are from Darksiders II using RPCS3.
 
 ## Download
 **Please leave a star ⭐ if you found this repository helpful!**  
-📅 **TBD (currently testing OFW):** Release 1.0.0 is here!
+📅 **20/10/2026:** Release 1.0.0 is here!
 
 You can download the compiled versions for your operating system here:  
 **[Download Latest Release.](https://github.com/adamstark1/Darksiders2-Reborn-PS3/releases)**
@@ -42,7 +42,10 @@ You can download the compiled versions for your operating system here:
 1. **Clear Ports:** Click the button in the Launcher to free Port 53 (DNS), Port 443 and Port 8443 (HTTPS). These are required for the application to intercept PS3 traffic.
 2. **Select Platform:** Select PS3 or [RPCS3](https://rpcs3.net/download) (emulator). For RPCS3, you'll have to do the steps down below as well. If you're on PS3, skip to Step 3.
     * Open RPCS3, click Utilities, then **Decrypt PS3 Binaries**.
-    * Find your EBOOT.BIN file under `RPCS3/dev_hdd0/game/NPEB00902/USRDIR` and open it. RPCS3 will now generate an ELF file.
+   * Find your game's `EBOOT.BIN` in its `USRDIR` folder and select it. The location depends on your edition:
+     * Digital (PSN, Europe): `RPCS3/dev_hdd0/game/NPEB00902/USRDIR`
+     * Disc: `PS3_GAME/USRDIR` inside your game folder (e.g. `BLES01597` for Europe, `BLUS30829` for North America)
+     * RPCS3 will create an `EBOOT.elf` file next to it.
     * Download [patch_eboot.sh](https://github.com/adamstark1/Darksiders2-Reborn-PS3/tree/main/RPCS3) and launch it with `./patch_eboot.sh <path_to_eboot.elf>` from Terminal (use [Git Bash](https://git-scm.com/install/) terminal on Windows).
     * Delete/rename the original EBOOT.BIN file.
     * Place the patched BIN into your game's `USRDIR` folder.
@@ -56,13 +59,13 @@ You can download the compiled versions for your operating system here:
     * Leave the **Secondary DNS** blank (or `0.0.0.0`).
     * Save settings and test the connection.
 4. **Optional Step:** Open the **Internet Browser** on your PS3 and head to https://ds2.gds.thqconnect.com/. If you see my message, you're perfectly set.
-5. **Start Server:** Once the DNS is set, click "Start Server". The terminal will display your local IP address. Boot the game.
+5. **Start Server:** Once the DNS is set, click "Start Server" and wait for the timer to end or leave a ⭐ and you'll gain access instantly. The terminal will display your local IP address. Boot the game.
 
 
 ## Sponsors and Contributors
-I'd like to give a huge thank you to everyone who helped with this repository. This projects improves overtime thanks to you! Credit to [frrstgvmp's](https://github.com/frrstgvmp/darksiders2-ps3-mail-server) repository for mapping the missing API endpoints that I wasn't able to find with [Ghidra](https://github.com/NationalSecurityAgency/ghidra/releases).
+I'd like to give a huge thank you to everyone who helped with this repository. This projects improves overtime thanks to you! Special credit to [frrstgvmp's](https://github.com/frrstgvmp/darksiders2-ps3-mail-server) repository, whose documentation of the THQ Connect cloud API protocol filled in what I wasn't able to find with [Ghidra](https://github.com/NationalSecurityAgency/ghidra/releases) on my own.
 
-❤️ **Sponsors:** [@ffv2-droid](https://github.com/ffv2-droid)  
+❤️ **Sponsors:** - 
 🛠️ **Troubleshooting:** -
 
 You can support my coding journey and revival projects on [GitHub Sponsors](https://github.com/sponsors/adamstark1).

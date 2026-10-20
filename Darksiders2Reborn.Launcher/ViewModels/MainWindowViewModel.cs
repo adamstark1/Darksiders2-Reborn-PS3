@@ -226,7 +226,7 @@ public partial class MainWindowViewModel : ObservableObject
                 IsPlatformButtonsVisible = false;
                 IsReadmeLinkVisible = false;
                 IsPrimaryEnabled = true;
-                StepDescription = $"Server is active for {(_isOfwSelected ? "PS3 Console" : "RPCS3")}. Monitoring requests in the terminal below.\n\nPS3 Primary DNS: {GetLocalIpAddress()}";
+                StepDescription = $"Server is active. Monitoring {(_isOfwSelected ? "PS3 Console" : "RPCS3")} requests in the terminal below.";
                 PrimaryButtonText = "Stop Server";
                 break;
         }
