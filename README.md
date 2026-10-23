@@ -72,7 +72,7 @@ I managed to restore the Platinum trophies for these games with the help of some
 ## Sponsors and Contributors
 I'd like to give a huge thank you to everyone who helped with this repository. This projects improves overtime thanks to you! Special credit to [frrstgvmp's](https://github.com/frrstgvmp/darksiders2-ps3-mail-server) repository, whose documentation of the THQ Connect cloud API protocol filled in what I wasn't able to find with [Ghidra](https://github.com/NationalSecurityAgency/ghidra/releases) on my own.
 
-❤️ **Sponsors:** -  
+❤️ **Sponsors:** 1 private sponsor  
 🛠️ **Troubleshooting:** -
 
 You can support my coding journey and revival projects on [GitHub Sponsors](https://github.com/sponsors/adamstark1).
