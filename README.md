@@ -2,7 +2,7 @@
 > [!IMPORTANT]
 > This project brings back the Online Mailbox functionality and the "Pay It Forward" trophy for Darksiders II.
 
-A cross-platform custom server and launcher to restore the Platinum trophy and Online Mailbox functionality for **Darksiders II** on the PlayStation 3.
+A cross-platform custom server and launcher to restore the Platinum trophy and Online Mailbox functionality for **Darksiders II** on the PlayStation 3 and RPCS3.
 
 |             BEFORE: Server Error              |             AFTER: Server Online             |
 |:---------------------------------------------:|:--------------------------------------------:|
@@ -26,6 +26,8 @@ I managed to restore the Platinum trophies for these games with the help of some
 - [inFAMOUS 2](https://github.com/adamstark1/inFAMOUS-Reborn-PS3)
 - [inFAMOUS: Festival of Blood](https://github.com/adamstark1/inFAMOUS-Reborn-PS3)
 - [Darksiders 2](https://github.com/adamstark1/Darksiders2-Reborn-PS3)
+- [Saints Row: The Third](https://github.com/adamstark1/SaintsRow-Reborn-PS3)
+- [Saints Row IV](https://github.com/adamstark1/SaintsRow-Reborn-PS3)
 
 
 ## How to Run
